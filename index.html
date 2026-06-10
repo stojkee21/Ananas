@@ -148,6 +148,9 @@
   .install-bar.show { display: flex; }
   .install-btn { font-size: 13px; font-weight: 600; color: var(--green-dark); background: none; border: 1px solid var(--green); border-radius: 20px; padding: 4px 12px; cursor: pointer; }
   .dismiss-btn { background: none; border: none; color: var(--text3); font-size: 18px; cursor: pointer; padding: 0 4px; }
+  .update-bar { display: none; padding: 12px 20px; background: var(--amber-light); border-bottom: 0.5px solid rgba(239,159,39,0.25); font-size: 13px; color: #854F0B; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .update-bar.show { display: flex; }
+  .update-btn { font-size: 13px; font-weight: 600; color: #854F0B; background: none; border: 1px solid var(--amber); border-radius: 20px; padding: 4px 12px; cursor: pointer; }
 
   /* Swipe hint on habit items */
   @media (hover: none) {
@@ -163,6 +166,11 @@
       <button class="install-btn" id="install-btn">Instaliraj</button>
       <button class="dismiss-btn" id="dismiss-install">✕</button>
     </div>
+  </div>
+
+  <div id="update-bar" class="update-bar">
+    <span>🆕 Nova verzija je dostupna</span>
+    <button class="update-btn" id="update-btn">Ažuriraj</button>
   </div>
 
   <div class="header">
@@ -553,9 +561,24 @@ function showBackupMsg(text, type) {
   setTimeout(() => { el.style.display = 'none'; }, 3500);
 }
 
-// Service Worker
+// Service Worker with auto-update detection
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(() => {});
+  navigator.serviceWorker.register('./sw.js').then(reg => {
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          document.getElementById('update-bar').classList.add('show');
+        }
+      });
+    });
+    document.getElementById('update-btn').onclick = () => {
+      if (reg.waiting) reg.waiting.postMessage('skipWaiting');
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload();
+    });
+  }).catch(() => {});
 }
 
 renderToday();
