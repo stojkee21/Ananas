@@ -53,23 +53,6 @@ Jednostavna PWA aplikacija za praćenje dnevnih navika tokom 90-dnevnog izazova.
 
 ---
 
-## 🛠️ Postavljanje na GitHub Pages
-
-```bash
-git init
-git add .
-git commit -m "Initial commit"
-git remote add origin https://github.com/TVOJE_IME/NAZIV_REPO.git
-git push -u origin master
-```
-
-Zatim u GitHub repozitorijumu:
-**Settings → Pages → Source: Deploy from branch → master → Save**
-
-App će biti dostupna na: `https://TVOJE_IME.github.io/NAZIV_REPO`
-
----
-
 ## 💾 Podaci
 
 Svi podaci se čuvaju lokalno u `localStorage` na uređaju — nema servera, nema baze podataka, nema slanja podataka nigde. Brisanjem podataka browsera briše se i istorija.
