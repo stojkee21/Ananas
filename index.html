@@ -130,6 +130,19 @@
   .add-habit-btn { margin-top: 8px; width: 100%; padding: 11px; border-radius: var(--radius); border: none; background: var(--green); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
   .add-habit-btn:active { background: var(--green-dark); }
 
+  /* Backup section */
+  .backup-section { margin-top: 20px; background: var(--bg2); border-radius: var(--radius-lg); padding: 16px; border: 0.5px solid var(--border); }
+  .backup-label { font-size: 12px; font-weight: 600; color: var(--text2); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 8px; }
+  .backup-desc { font-size: 13px; color: var(--text2); line-height: 1.5; margin-bottom: 14px; }
+  .backup-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .backup-btn { padding: 12px 8px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg); color: var(--text); font-size: 14px; font-weight: 500; cursor: pointer; text-align: center; }
+  .backup-btn:active { opacity: 0.7; }
+  .export-btn { border-color: var(--green); color: var(--green-dark); background: var(--green-light); }
+  .import-btn { border-color: var(--border2); color: var(--text); }
+  .backup-msg { margin-top: 10px; padding: 10px 14px; border-radius: var(--radius); font-size: 13px; font-weight: 500; }
+  .backup-msg.success { background: var(--green-light); color: var(--green-dark); }
+  .backup-msg.error { background: var(--red-light); color: #a32d2d; }
+
   /* Install prompt */
   .install-bar { display: none; padding: 12px 20px; background: var(--green-light); border-bottom: 0.5px solid rgba(29,158,117,0.2); font-size: 13px; color: var(--green-dark); align-items: center; justify-content: space-between; flex-shrink: 0; }
   .install-bar.show { display: flex; }
@@ -231,6 +244,17 @@
         <label>Nova navika</label>
         <input class="add-habit-input" id="new-habit" type="text" placeholder="npr. Jutarnja meditacija..." maxlength="60">
         <button class="add-habit-btn" onclick="addHabit()">+ Dodaj naviku</button>
+      </div>
+
+      <div class="backup-section">
+        <div class="backup-label">💾 Backup podataka</div>
+        <p class="backup-desc">Izvezi sve podatke kao JSON fajl u Downloads folder. Uvezi kada hoćeš da vratiš istoriju ili preneseš na drugi uređaj.</p>
+        <div class="backup-btns">
+          <button class="backup-btn export-btn" onclick="exportData()">⬇️ Izvezi podatke</button>
+          <button class="backup-btn import-btn" onclick="document.getElementById('import-input').click()">⬆️ Uvezi podatke</button>
+          <input type="file" id="import-input" accept=".json" style="display:none" onchange="importData(event)">
+        </div>
+        <div id="backup-msg" class="backup-msg" style="display:none"></div>
       </div>
     </div>
   </div>
@@ -472,6 +496,62 @@ document.getElementById('dismiss-install').onclick = () => {
 document.getElementById('new-habit').addEventListener('keydown', e => {
   if (e.key === 'Enter') addHabit();
 });
+
+// Export
+function exportData() {
+  const data = {
+    version: 1,
+    exportDate: new Date().toISOString(),
+    startDate,
+    habits,
+    logs,
+    quotes
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `consistency-backup-${dateStr}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showBackupMsg('✅ Fajl je sačuvan u Downloads folder!', 'success');
+}
+
+// Import
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.habits || !data.logs) throw new Error('Neispravan fajl');
+      if (!confirm(`Uvesti podatke iz ${file.name}?\n\nOvo će ZAMENITI sve trenutne podatke!`)) return;
+      habits = data.habits;
+      logs = data.logs;
+      quotes = data.quotes || {};
+      startDate = data.startDate || todayStr();
+      localStorage.setItem('cc_start', startDate);
+      save();
+      renderToday();
+      renderManage();
+      showBackupMsg('✅ Podaci su uspešno uvezeni!', 'success');
+    } catch (err) {
+      showBackupMsg('❌ Greška: fajl nije ispravan backup.', 'error');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function showBackupMsg(text, type) {
+  const el = document.getElementById('backup-msg');
+  el.textContent = text;
+  el.className = 'backup-msg ' + type;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 3500);
+}
 
 // Service Worker
 if ('serviceWorker' in navigator) {
